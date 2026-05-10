@@ -2,28 +2,39 @@ import express from "express";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import cors from "cors";
+import routes from "./routes/index.routes.js";
+import { errorHandler } from "./middleware/error.middleware.js";
 
-// Carga las variables del .env y las pone en process.env
+// Carga las variables de entorno desde el archivo .env a process.env
 dotenv.config();
 
-// Crear una instancia aplicacion de express
+// Instancia principal de la app
 const app = express();
-// Para permitir que los dominios se puedan comunicar con el servidor
+
+// Configuracion de CORS para permitir peticiones desde el frontend local (Vite por defecto usa 5173)
 app.use(
   cors({
     origin: "http://localhost:5173",
-    credentials: true, //Para que express agregue el header Access-Controll...
+    credentials: true, // Permite enviar cookies o headers de autorizacion
   }),
 );
-// Metodo para que express entienda el JSON en el body de las requests (req.body)
+
+// Middleware para que Express entienda el formato JSON que viene en el body
 app.use(express.json());
-// Metodo para ver las llamadas al back
+
+// Morgan sirve para ver las peticiones http en la consola mientras desarrollamos
 app.use(morgan("dev"));
+
+// Aca montamos todas las rutas de nuestra API, asi todas empiezan con /api
+app.use("/api", routes);
+
+// Este manejador atrapa cualquier error que ocurra en las rutas para no tumbar el servidor
+// y siempre devolver un json con el formato { "error": "mensaje" }
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
-// Arranca el servidor en el puerto definido
-// El callback se ejecuta cuando el servidor esta listo para recibir requests
+// Arranca el servidor
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
 
 export default app;
