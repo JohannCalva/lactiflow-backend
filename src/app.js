@@ -14,7 +14,7 @@ const app = express();
 // Configuracion de CORS para permitir peticiones desde el frontend local (Vite por defecto usa 5173)
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://lactiflow-frontend.vercel.app"],
     credentials: true, // Permite enviar cookies o headers de autorizacion
   }),
 );
