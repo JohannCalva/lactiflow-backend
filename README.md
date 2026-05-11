@@ -25,7 +25,7 @@ Antes de comenzar, asegúrate de tener instalado en tu máquina:
 Abre tu terminal y ejecuta:
 ```bash
 git clone https://github.com/JohannCalva/lactiflow-backend.git
-cd lactiflow-server
+cd lactiflow-backend
 ```
 
 **2. Instalar dependencias**
@@ -68,7 +68,7 @@ Si ves el mensaje `Servidor corriendo en puerto 3000` en tu consola, ¡todo est�
 
 ## 1. Sistema de Autenticación (JWT)
 
-La API **no utiliza cookies**. Toda la seguridad se maneja mediante un token JWT (JSON Web Token) que tiene un tiempo de expiración de 12 horas.
+Toda la seguridad se maneja mediante un token JWT (JSON Web Token) que tiene un tiempo de expiración de 12 horas.
 
 **Flujo de Autenticación para el Frontend:**
 1. Enviar credenciales a `/auth/login` o registrar un usuario en `/auth/register`.
