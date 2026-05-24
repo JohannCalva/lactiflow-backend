@@ -58,3 +58,31 @@ export const remove = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getClientProfileHandler = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const profile = await ClientModel.getClientProfile(id);
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    res.json(profile);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getClientDeliveriesHandler = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const limit  = parseInt(req.query.limit)  || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const result = await ClientModel.getClientDeliveries(id, limit, offset);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};

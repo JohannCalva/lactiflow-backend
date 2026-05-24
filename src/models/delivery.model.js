@@ -46,3 +46,15 @@ export const deleteDelivery = async (id) => {
   if (error) throw error;
   return true;
 };
+
+export const getHistoryByClient = async (clientId, productId) => {
+  const { data, error } = await supabase
+    .from('delivery')
+    .select('delivered_at, day_of_week, quantity')
+    .eq('client_id', clientId)
+    .eq('product_id', productId)
+    .order('delivered_at', { ascending: true });
+
+  if (error) throw error;
+  return data;
+};

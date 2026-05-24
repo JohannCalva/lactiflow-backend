@@ -19,7 +19,7 @@ router.use(verifyToken);
 
 // Rutas que unicamente puede utilizar un usuario con rol 'admin'
 router.use("/business_type", requireAdmin, businessTypeRoutes);
-router.use("/client", requireAdmin, clientRoutes);
+router.use("/client", clientRoutes);
 router.use("/product", requireAdmin, productRoutes);
 router.use("/user", requireAdmin, userRoutes);
 
