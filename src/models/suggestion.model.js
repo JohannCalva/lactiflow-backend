@@ -45,7 +45,7 @@ export const getProductTotalsByDate = async (date) => {
   // Fetch suggestions for the date with product info and suggested_qty
   const { data, error } = await supabase
     .from("suggestion")
-    .select("product(id, name), suggested_qty")
+    .select("product(id, name, unit), suggested_qty")
     .eq("next_date", date);
 
   if (error) throw error;
@@ -56,6 +56,7 @@ export const getProductTotalsByDate = async (date) => {
     const product = row.product || {};
     const productId = product.id || null;
     const productName = product.name || null;
+    const productUnit = product.unit ?? null;
     const qty = Number(row.suggested_qty) || 0;
 
     if (!productId) continue;
@@ -64,6 +65,7 @@ export const getProductTotalsByDate = async (date) => {
       totals.set(productId, {
         product_id: productId,
         product_name: productName,
+        product_unit: productUnit,
         total_qty: 0,
       });
     }
@@ -76,6 +78,7 @@ export const getProductTotalsByDate = async (date) => {
   return Array.from(totals.values()).map((t) => ({
     product_id: t.product_id,
     product_name: t.product_name,
+    product_unit: t.product_unit,
     total_qty: Math.round(t.total_qty * 100) / 100,
   }));
 };
