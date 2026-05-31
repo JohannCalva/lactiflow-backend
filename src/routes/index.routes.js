@@ -8,7 +8,10 @@ import authRoutes from "./auth.routes.js";
 import suggestionRoutes from "./suggestion.routes.js";
 
 import { verifyToken } from "../middleware/auth.middleware.js";
-import { requireAdmin, requireEmprendedorOrAdmin } from "../middleware/role.middleware.js";
+import {
+  requireAdmin,
+  requireEmprendedorOrAdmin,
+} from "../middleware/role.middleware.js";
 
 const router = Router();
 
@@ -27,6 +30,6 @@ router.use("/user", requireAdmin, userRoutes);
 // Aca dejamos pasar tanto a los admins como a los emprendedores para gestionar envios
 router.use("/delivery", requireEmprendedorOrAdmin, deliveryRoutes);
 
-router.use("/suggestions", requireAdmin, suggestionRoutes);
+router.use("/suggestions", requireEmprendedorOrAdmin, suggestionRoutes);
 
 export default router;
