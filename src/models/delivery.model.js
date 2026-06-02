@@ -46,3 +46,36 @@ export const deleteDelivery = async (id) => {
   if (error) throw error;
   return true;
 };
+
+export const getHistoryByClientInWindow = async (
+  clientId,
+  productId,
+  windowDays = 60,
+) => {
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - windowDays);
+  const sinceStr = since.toISOString().split("T")[0];
+
+  const { data, error } = await supabase
+    .from("delivery")
+    .select("delivered_at, quantity")
+    .eq("client_id", clientId)
+    .eq("product_id", productId)
+    .gte("delivered_at", sinceStr)
+    .order("delivered_at", { ascending: true });
+
+  if (error) throw error;
+  return data;
+};
+
+export const getHistoryByClient = async (clientId, productId) => {
+  const { data, error } = await supabase
+    .from('delivery')
+    .select('delivered_at, day_of_week, quantity')
+    .eq('client_id', clientId)
+    .eq('product_id', productId)
+    .order('delivered_at', { ascending: true });
+
+  if (error) throw error;
+  return data;
+};
