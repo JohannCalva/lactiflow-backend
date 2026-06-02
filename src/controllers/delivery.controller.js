@@ -52,6 +52,9 @@ export const update = async (req, res, next) => {
       req.params.id,
       deliveryData,
     );
+    generateSuggestions(data.client_id).catch((err) =>
+      console.error("Error recalculando prediccion tras actualizacion:", err),
+    );
     res.json(data);
   } catch (error) {
     next(error);
@@ -60,7 +63,13 @@ export const update = async (req, res, next) => {
 
 export const remove = async (req, res, next) => {
   try {
+    const delivery = await DeliveryModel.getDeliveryById(req.params.id);
     await DeliveryModel.deleteDelivery(req.params.id);
+    if (delivery?.client_id) {
+      generateSuggestions(delivery.client_id).catch((err) =>
+        console.error("Error recalculando prediccion tras borrado:", err),
+      );
+    }
     res.status(204).send();
   } catch (error) {
     next(error);
