@@ -70,12 +70,23 @@ export const getHistoryByClientInWindow = async (
 
 export const getHistoryByClient = async (clientId, productId) => {
   const { data, error } = await supabase
-    .from('delivery')
-    .select('delivered_at, day_of_week, quantity')
-    .eq('client_id', clientId)
-    .eq('product_id', productId)
-    .order('delivered_at', { ascending: true });
+    .from("delivery")
+    .select("delivered_at, day_of_week, quantity")
+    .eq("client_id", clientId)
+    .eq("product_id", productId)
+    .order("delivered_at", { ascending: true });
 
   if (error) throw error;
   return data;
+};
+
+export const getDistinctProductIdsForClient = async (clientId) => {
+  const { data, error } = await supabase
+    .from("delivery")
+    .select("product_id")
+    .eq("client_id", clientId);
+
+  if (error) throw error;
+
+  return [...new Set((data || []).map((d) => d.product_id))];
 };
