@@ -82,3 +82,11 @@ export const getProductTotalsByDate = async (date) => {
     total_qty: Math.round(t.total_qty * 100) / 100,
   }));
 };
+
+export const upsertSuggestionForClientProduct = async (suggestionObj) => {
+  const { error } = await supabase
+    .from("suggestion")
+    .upsert(suggestionObj, { onConflict: "client_id,product_id" });
+  if (error) throw error;
+  return true;
+};
