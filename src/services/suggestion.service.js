@@ -1,6 +1,8 @@
-import supabase from "../config/supabase.js";
 import { addDays } from "../utils/date.utils.js";
-import { getHistoryByClientInWindow } from "../models/delivery.model.js";
+import * as ClientModel from "../models/client.model.js";
+import * as DeliveryModel from "../models/delivery.model.js";
+import * as SuggestionModel from "../models/suggestion.model.js";
+import * as ProductModel from "../models/product.model.js";
 
 const calcMedian = (arr) => {
   const sorted = [...arr].sort((a, b) => a - b);
@@ -13,37 +15,29 @@ const calcMedian = (arr) => {
 const calcAverage = (arr) => arr.reduce((sum, v) => sum + v, 0) / arr.length;
 
 export const generateSuggestions = async (filterClientId = null) => {
-  // 1. Obtener clientes activos
-  let query = supabase.from("client").select("*").eq("is_active", true);
-  if (filterClientId) {
-    query = query.eq("id", filterClientId);
-  }
-  const { data: clients, error: clientsError } = await query;
-  if (clientsError) throw clientsError;
+  // 1. Obtener clientes activos (delegado al modelo)
+  const clients = await ClientModel.getActiveClients(filterClientId);
 
   let totalSuggestions = 0;
   let reclassifiedCount = 0;
   const details = [];
 
   for (const client of clients) {
-    // 2. Obtener productos distintos pedidos por este cliente
-    const { data: deliveryRows, error: deliveryError } = await supabase
-      .from("delivery")
-      .select("product_id")
-      .eq("client_id", client.id);
-    if (deliveryError) throw deliveryError;
-
-    const productIds = [...new Set(deliveryRows.map((d) => d.product_id))];
+    // 2. Obtener productos distintos pedidos por este cliente (delegado al modelo)
+    const productIds = await DeliveryModel.getDistinctProductIdsForClient(
+      client.id,
+    );
 
     const clientBehaviourPerProduct = [];
 
     for (const productId of productIds) {
       // 3. Historial de los últimos 90 días
-      const clientDeliveriesHistory = await getHistoryByClientInWindow(
-        client.id,
-        productId,
-        90,
-      );
+      const clientDeliveriesHistory =
+        await DeliveryModel.getHistoryByClientInWindow(
+          client.id,
+          productId,
+          90,
+        );
 
       // 4. Mínimo 2 entregas para calcular gaps
       if (clientDeliveriesHistory.length < 2) continue;
@@ -51,7 +45,9 @@ export const generateSuggestions = async (filterClientId = null) => {
       // Paso 1 — ¿Cuándo?
       const deliveryIntervals = [];
       for (let i = 1; i < clientDeliveriesHistory.length; i++) {
-        const fechaActual = new Date(`${clientDeliveriesHistory[i].delivered_at}T12:00:00Z`);
+        const fechaActual = new Date(
+          `${clientDeliveriesHistory[i].delivered_at}T12:00:00Z`,
+        );
         const fechaAnterior = new Date(
           `${clientDeliveriesHistory[i - 1].delivered_at}T12:00:00Z`,
         );
@@ -63,14 +59,20 @@ export const generateSuggestions = async (filterClientId = null) => {
       const maxGap = Math.max(...deliveryIntervals);
       const minGap = Math.min(...deliveryIntervals);
       const spread =
-        deliveryIntervals.length > 0 && avgGap > 0 ? (maxGap - minGap) / avgGap : 0;
+        deliveryIntervals.length > 0 && avgGap > 0
+          ? (maxGap - minGap) / avgGap
+          : 0;
 
-      const lastDate = clientDeliveriesHistory[clientDeliveriesHistory.length - 1].delivered_at;
+      const lastDate =
+        clientDeliveriesHistory[clientDeliveriesHistory.length - 1]
+          .delivered_at;
       const nextDate = addDays(lastDate, Math.round(avgGap));
 
       // Paso 2 — ¿Cuánto?
       const deliveryCount = clientDeliveriesHistory.length;
-      const deliveredQuantities = clientDeliveriesHistory.map((e) => Number(e.quantity));
+      const deliveredQuantities = clientDeliveriesHistory.map((e) =>
+        Number(e.quantity),
+      );
 
       let suggestedQty, confidence, method;
 
@@ -90,7 +92,9 @@ export const generateSuggestions = async (filterClientId = null) => {
       } else {
         const medianQuantity = calcMedian(deliveredQuantities);
         const recentAvgQty = calcAverage(deliveredQuantities.slice(-3));
-        const deviationsFromMedian = deliveredQuantities.map((q) => Math.abs(q - medianQuantity));
+        const deviationsFromMedian = deliveredQuantities.map((q) =>
+          Math.abs(q - medianQuantity),
+        );
         const medianAbsDeviation = calcMedian(deviationsFromMedian);
 
         if (medianAbsDeviation === 0) {
@@ -98,7 +102,8 @@ export const generateSuggestions = async (filterClientId = null) => {
           confidence = "alta";
           method = "Baseline";
         } else {
-          const trendDeviationScore = Math.abs(recentAvgQty - medianQuantity) / medianAbsDeviation;
+          const trendDeviationScore =
+            Math.abs(recentAvgQty - medianQuantity) / medianAbsDeviation;
           if (trendDeviationScore > 2) {
             suggestedQty = Math.round(recentAvgQty);
             confidence = "alta";
@@ -111,32 +116,24 @@ export const generateSuggestions = async (filterClientId = null) => {
         }
       }
 
-      // 6. Persistir via UPSERT
-      const { error: upsertError } = await supabase.from("suggestion").upsert(
-        {
-          client_id: client.id,
-          product_id: productId,
-          next_date: nextDate,
-          suggested_qty: Math.round(suggestedQty * 100) / 100,
-          confidence,
-          method,
-          delivery_count: deliveryCount,
-          avg_gap: Math.round(avgGap * 100) / 100,
-          spread: Math.round(spread * 10000) / 10000,
-          generated_at: new Date().toISOString(),
-        },
-        { onConflict: "client_id,product_id" },
-      );
-      if (upsertError) throw upsertError;
+      // 6. Persistir via UPSERT (delegado al modelo)
+      await SuggestionModel.upsertSuggestionForClientProduct({
+        client_id: client.id,
+        product_id: productId,
+        next_date: nextDate,
+        suggested_qty: Math.round(suggestedQty * 100) / 100,
+        confidence,
+        method,
+        delivery_count: deliveryCount,
+        avg_gap: Math.round(avgGap * 100) / 100,
+        spread: Math.round(spread * 10000) / 10000,
+        generated_at: new Date().toISOString(),
+      });
 
       totalSuggestions++;
 
-      // Obtener nombre del producto para el detalle
-      const { data: productData } = await supabase
-        .from("product")
-        .select("name")
-        .eq("id", productId)
-        .single();
+      // Obtener nombre del producto para el detalle (usar modelo de producto)
+      const productData = await ProductModel.getProductById(productId);
 
       clientBehaviourPerProduct.push({ spread });
       details.push({
@@ -171,10 +168,7 @@ export const generateSuggestions = async (filterClientId = null) => {
         newType = "B";
       }
 
-      await supabase
-        .from("client")
-        .update({ client_type: newType })
-        .eq("id", client.id);
+      await ClientModel.updateClient(client.id, { client_type: newType });
 
       if (newType !== client.client_type) {
         reclassifiedCount++;
