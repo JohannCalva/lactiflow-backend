@@ -4,7 +4,7 @@ import * as DeliveryModel from "../models/delivery.model.js";
 import * as SuggestionModel from "../models/suggestion.model.js";
 import * as ProductModel from "../models/product.model.js";
 
-const calcMedian = (arr) => {
+export const calcMedian = (arr) => {
   const sorted = [...arr].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 !== 0
@@ -12,7 +12,7 @@ const calcMedian = (arr) => {
     : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
-const calcAverage = (arr) => arr.reduce((sum, v) => sum + v, 0) / arr.length;
+export const calcAverage = (arr) => arr.reduce((sum, v) => sum + v, 0) / arr.length;
 
 export const generateSuggestions = async (filterClientId = null) => {
   // 1. Obtener clientes activos (delegado al modelo)
