@@ -1,4 +1,4 @@
-import { calcMedian, calcAverage } from "./suggestion.service.js";
+import { calcMedian, calcAverage } from "./suggestion.engine.js";
 
 describe("calcMedian", () => {
   test("odd-length array returns middle element", () => {
